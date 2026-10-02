@@ -1,4 +1,4 @@
-Event Paradox v0.3 — integrated Auto-Cards adaptation
+Event Paradox v0.4 — integrated Auto-Cards adaptation
 
 Auto-Cards by LewdLeah
 https://github.com/LewdLeah/Auto-Cards
