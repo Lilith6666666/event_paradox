@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/event-paradox-banner.png" alt="Event Paradox" width="100%">
+  <img src="assets/Event Paradox_ Gothic Storycraft.png" alt="Event Paradox" width="100%">
 </p>
 
 # Event Paradox v0.4
