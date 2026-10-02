@@ -1,0 +1,421 @@
+EventParadox: Events Creator
+===========================
+A practical guide for Event Paradox v0.4
+
+New to scripting? Start with the final starter template, paste it into the
+Library definitions block, and change the quoted story text. Keep the Event
+Paradox engine below the END marker. Save and start a NEW adventure to test
+new starting values. README.txt is the separate technical reference.
+
+THE THREE THINGS YOU EDIT
+-------------------------
+EP_START: the starting chapter and your story variables.
+EP_CHAPTERS: the story's phases, descriptions and optional visible openings.
+EP_EVENTS: the scenes that can happen, their requirements and their effects.
+
+A chapter is a container for events. It may have several events, just one,
+or none. It does not automatically end when its events finish. An event with
+nextChapter, or the forceChapter test command, moves the story onward.
+
+A MINIMAL COMPLETE SCENARIO
+---------------------------
+Copy from the BEGIN EVENT DEFINITIONS line through END EVENT DEFINITIONS.
+The surrounding BEGIN/END RUNNABLE EXAMPLE labels are for the guide's tests.
+The bell rings on the first successful story Output. The next event leaves
+school on the following Output. Free roam has no authored events.
+
+BEGIN RUNNABLE EXAMPLE: MINIMAL
+// BEGIN EVENT DEFINITIONS — EDIT HERE
+var EP_START = {
+  chapter: "school",
+  variables: { bellRang: false, choice: { search: "undecided" } }
+};
+var EP_CHAPTERS = {
+  school: "The students are finishing the school day.",
+  free_roam: "Classes are over. The story can continue freely."
+};
+var EP_EVENTS = [
+  {
+    id: "bell_rings",
+    chapter: "school",
+    text: "The bell rings.",
+    once: true,
+    effects: [{ path: "bellRang", op: "set", value: true }]
+  },
+  {
+    id: "leave_school",
+    chapter: "school",
+    when: { path: "bellRang", op: "eq", value: true },
+    text: "You step out into the afternoon.",
+    nextChapter: "free_roam"
+  }
+];
+// END EVENT DEFINITIONS
+END RUNNABLE EXAMPLE
+
+CREATING A CHAPTER
+------------------
+Add an entry inside EP_CHAPTERS. Use a short, stable ID such as search.
+A simple chapter is enough:
+
+  search: "The key is missing."
+
+A rich chapter can also show a title/opening and advance story time:
+
+  search: {
+    title: "Chapter 2 — The Search",
+    description: "The key is missing.",
+    announce: true,
+    opening: "The search begins.",
+    timeAdvance: { days: 3 }
+  }
+
+search is the chapter ID. Events and commands use this ID, not its title.
+title is the exact visible heading. You can write "ACT II — FAULT LINES";
+Event Paradox will not add the word Chapter or change the capitalization.
+description tells the AI what is true in this phase. Rich chapters need it.
+announce: true displays the title and opening when the chapter is entered.
+opening is exact creator-written prose below the title. It stays hidden if
+announce is false or omitted.
+timeAdvance moves narrative time forward when entering from another chapter.
+
+Entering the chapter above adds three days. Being inside it for another turn,
+Retry, and forcing the already-current chapter do not add another three days.
+Leaving and later re-entering it DOES add three days again.
+
+The initial EP_START chapter starts at time zero. It does not automatically
+apply its timeAdvance or show an opening. Preview it with testChapter if needed.
+Simple string chapters still work alongside rich chapters.
+
+CREATING AN EVENT
+-----------------
+Add an object inside EP_EVENTS, with commas between objects. The minimal
+bell_rings object in the first example is a complete event.
+
+id: unique machine name, such as "bell_rings". Keep it stable after publishing.
+chapter: where it may happen. This must name a chapter in EP_CHAPTERS.
+text: the exact scene to show. Use \n\n inside a string for a blank line.
+once: true makes it happen only once (this is also the default).
+title: optional human-facing name shown in event lists and the journal.
+display: "append" adds your text after the AI response (the default).
+display: "replace" makes your text the whole visible scene.
+
+At most one event fires per successful story Output. Several eligible events
+are ordered by priority (higher first), then their order in EP_EVENTS.
+For an intentional repeat, use once: false and cooldownTurns: 2 or greater.
+
+DELAYING EVENTS AND CHECKING VARIABLES
+--------------------------------------
+Add these fields inside an event when you need them:
+
+  minTurns: 4,
+  minChapterTurns: 2,
+  when: { path: "bellRang", op: "eq", value: true },
+
+minTurns counts successful story Outputs while EP is enabled, across chapters.
+minChapterTurns counts them within the current chapter. The current Output
+counts toward both. These are turn gates, not durations on the timeline.
+Console previews, /ep set, Retry and card-only maintenance are not new turns.
+
+when checks a story variable. eq means equal. More than one requirement:
+
+  when: {
+    all: [
+      { path: "key.found", op: "eq", value: true },
+      { path: "stage.ready", op: "eq", value: true }
+    ]
+  },
+
+Initialize these values inside EP_START.variables if your story needs them.
+Paths such as "key.found" are relative to your variables. Do not write
+"state.eventParadox.variables.key.found".
+
+CHANGING THINGS AND MOVING CHAPTERS
+----------------------------------
+Effects change your variables when the event really happens:
+
+  effects: [
+    { path: "bellRang", op: "set", value: true }
+  ],
+  nextChapter: "free_roam",
+
+Use set to assign a value. add/subtract change an existing number. For example,
+{ path: "score", op: "add", value: 1 } needs a numeric score in EP_START.
+
+nextChapter moves to that chapter after the event. If the destination has an
+announcement, the output is your event text, then its heading and opening.
+The normal event selection resumes on the next successful story Output.
+
+Neither AI prose nor a player saying "I choose backstage" changes a variable.
+To test a choice explicitly, submit a separate Do action:
+  /ep set = {"path":"choice.search","value":"backstage"}
+Then submit a normal action or Continue.
+
+MEMORIES
+---------
+Add a short authored fact to an event:
+
+  memory: {
+    slot: "stage_key",
+    scope: "story",
+    summary: "Maya and the player found the missing stage key."
+  },
+
+summary is the fact EP may remind the AI about. It does not generate a summary.
+slot is a named memory slot. Reusing it replaces the old fact in that slot.
+scope: "story" keeps it across chapters. scope: "chapter" expires when the
+chapter ends; a transition event's new memory belongs to its destination.
+
+For a memory about a timed milestone, you may add timeAnchor: "festival_opened"
+inside memory. EP adds relative age in context when that anchor exists; your
+stored summary stays exactly as written.
+
+DYNAMIC CHARACTERS AND LOCATIONS
+--------------------------------
+Use /ep entities to find registered Characters and Locations. Copy a stable ID
+from YOUR adventure, then assign a role with /ep set:
+  /ep set = {"path":"helper","value":"ENTITY_ID_FROM_YOUR_LIST"}
+
+For example, add this event to a scenario with a school chapter and a helper
+variable (starting at null is fine):
+
+  {
+    id: "helper_arrives",
+    chapter: "school",
+    when: { path: "helper", op: "registeredEntity", value: "Character" },
+    interpolate: true,
+    text: "{{entity:helper}} joins the search.",
+    memory: {
+      slot: "helper",
+      scope: "chapter",
+      characterPath: "helper",
+      summary: "This character helped search for the missing key."
+    }
+  }
+
+registeredEntity checks both registration and type. {{entity:helper}} inserts
+the registered name. memory.characterPath targets that Character's authored
+memory. It does not assign a relationship or role automatically.
+For a place, check value: "Location" and use a location variable in the token.
+
+Existing creator Character/Location cards register without Auto-Cards enabled.
+Use an unambiguous full name and contained name aliases as card triggers.
+To let the integrated Auto-Cards create new cards, enable autoCardsEnabled in
+the Configuration card. To see optional character mirrors, use memoryMode =
+character (or full) and autoCharacterCards = true. Do not install a second
+standalone Auto-Cards script.
+
+NARRATIVE TIME AND ANCHORS
+--------------------------
+Time is authored story time. A week away from AI Dungeon changes nothing.
+Ordinary turns do not advance it. AI text saying "Three months later" does not
+advance it either. Use timeAdvance on an event or on a destination chapter:
+
+  timeAdvance: { months: 3, days: 2, hours: 6 },
+
+Supported units: years, months, weeks, days, hours. Use whole numbers, zero or
+greater. Twelve months display as a year; seven days display as a week; 24 hours
+carry into a day. For example, { days: 1, hours: 25 } becomes 2 days, 1 hour.
+Months never turn into days, and weeks never turn into months. No minutes or
+calendar dates are supported. Old timeline positions gain hours: 0 without
+losing their existing months, days or milestones.
+
+A real event applies its timeAdvance, then its destination chapter's
+timeAdvance if it changes chapter. Both belong to one event transaction.
+If anything fails, neither duration nor the event's effects are committed.
+
+Add an anchor to remember when something happened:
+
+  timeAnchor: {
+    id: "festival_opened",
+    label: "The school festival opened",
+    context: true
+  },
+
+The anchor records time AFTER the event and destination chapter advances.
+context: true permits a short reminder such as "The school festival opened —
+3 months ago." /ep time lists anchors even if their context flag is false.
+The first successful use of an anchor ID wins. Repeating/forcing the event does
+not move that anchor. Use a new ID for a new milestone. Up to 32 anchors fit;
+keep them for meaningful moments. README.txt contains exact storage limits.
+
+MANUAL TIME SKIPS
+-----------------
+Use a Do action for all /ep commands, including:
+
+  /ep timeSkip = 3mo;Three months pass. Alex settles into his new home.
+  /ep timeSkip = 6h;By evening, everyone is exhausted.
+  /ep timeSkip = 1y,2mo,3d,6h;Old routines slowly become familiar.
+
+Compact units: y = years, mo = months, w = weeks, d = days, h = hours.
+Omit units you do not need. Separate units with commas: 3mo, 2d, 6h.
+Use nonnegative whole numbers, each at most 1000000. Units are case-insensitive;
+use each unit only once. Do not write m for months. Minutes are not supported.
+
+Only the FIRST semicolon separates duration from prose. Everything after it
+is inserted exactly as canonical story text, including later semicolons and
+line breaks. EP does not rewrite it or ask the AI to summarize it. Spaces after
+the semicolon are part of your text. A final period is preserved even with a
+> You wrapper. Empty text and the literal word stop are not valid skip prose.
+
+This advances the SAME authoritative Narrative Timeline used by events and
+chapters. It does not move chapter, count as a story turn, fire an event,
+change variables, create memories/anchors, update relationships or create
+cards automatically. Existing anchors become older without moving their positions
+on the narrative timeline. /ep time and /ep status show hours when nonzero.
+Retry replays the same prose without adding time again; a new action is a new
+skip. Paused/recovery states block the command and do not insert its prose.
+
+Keep the complete command within ONE normal AI Dungeon action. EP's defensive
+cap is 4000 characters including command syntax, duration, prose and line
+breaks; the host may accept less. EP cannot bypass the host input limit.
+For prose too long to fit in one action:
+
+  /ep advanceTime = {"months":3}
+
+Then write the transition normally using Story mode, across multiple actions
+if needed. Those later Story actions follow ordinary turn/event rules.
+Event/chapter definitions still use objects such as timeAdvance:{days:2,hours:6};
+the compact 3mo form is only for the timeSkip command.
+
+ONE CHAPTER, MANY EVENTS; BRANCHES; FREE ROAM
+--------------------------------------------
+You can keep bell_rings and leave_school in school: two sequential events in
+one chapter. A chapter containing only bell_rings is equally valid. A chapter
+listed in EP_CHAPTERS with no events is a free-roam phase; EP does not invent
+an exit or force an event into it.
+
+For two mutually exclusive branches, replace the minimal example's EP_EVENTS
+with this array. Its school/free_roam chapters and choice.search variable are
+already declared there. Use /ep set to select backstage or office, then Continue.
+Both routes leave school, so the other branch cannot fire normally afterward.
+
+BEGIN EVENT ARRAY: BRANCHES
+[
+  {
+    id: "search_backstage",
+    chapter: "school",
+    when: { path: "choice.search", op: "eq", value: "backstage" },
+    text: "You find the key with Maya behind the curtains.",
+    nextChapter: "free_roam"
+  },
+  {
+    id: "search_office",
+    chapter: "school",
+    when: { path: "choice.search", op: "eq", value: "office" },
+    text: "Julia finds the key in the office lost-and-found drawer.",
+    nextChapter: "free_roam"
+  }
+]
+END EVENT ARRAY
+
+QUICK SYNTAX REMINDERS
+----------------------
+- Put commas between event objects and between fields in an object.
+- Put text and IDs in quotes. Escape a quote inside text with \".
+- Write true/false without quotes. Numbers also have no quotes.
+- Give every event a unique ID, starting with a letter. Avoid spaces in IDs.
+- Keep paths relative to EP_START.variables.
+- Unknown event/chapter fields are errors, so check spelling.
+- Start a NEW adventure to test EP_START changes; existing saves keep their values.
+- Events do not expire automatically. Deadlines and event windows are future work.
+
+TESTING WITH THE CONSOLE
+------------------------
+Submit one command at a time as a Do action:
+
+  /ep help
+  /ep status
+  /ep eventsID
+  /ep chaptersID
+  /ep entities
+  /ep time
+  /ep set = {"path":"choice.search","value":"backstage"}
+  /ep testEvent = EVENT_ID
+  /ep forceEvent = EVENT_ID
+  /ep testChapter = CHAPTER_ID
+  /ep forceChapter = CHAPTER_ID
+  /ep advanceTime = {"months":3,"hours":6}
+  /ep timeSkip = 3mo;Three months pass.
+
+Replace EVENT_ID/CHAPTER_ID with an ID from your own definitions. These slash
+commands need no debug setting or revision number. Read-only commands and
+previews work while EP is paused. set, forceEvent, forceChapter, advanceTime and
+timeSkip require enabled = true. Set debug = true for detailed scripting logs.
+
+WARNING: testEvent and testChapter are PREVIEWS. They change no story progress.
+forceEvent and forceChapter modify REAL progress. forceEvent runs effects,
+time advances, memories, anchors and completion. forceChapter changes chapter,
+applies entry time and expires old chapter memories, but invents no prerequisite
+variables and fires no event. Use them in a disposable test adventure.
+advanceTime changes real narrative time without running an event. timeSkip
+also commits your exact prose as story canon.
+
+Retry replays a handled action without adding time again. A deliberately new
+forceEvent can run again; its anchor ID still keeps its first occurrence.
+A new forceChapter for the already-current chapter does not advance time or
+reset chapter turns. Old Undo beyond saved checkpoints may require recovery.
+
+COPY-READY STARTER TEMPLATE
+---------------------------
+Copy the complete marked definitions block below into Library. This has two
+rich chapters and three events. welcome runs first, move_forward requires its
+effect, then a three-month chapter jump and a two-day event advance combine.
+routine_scene is the destination's single event. Normal play can continue there.
+
+BEGIN RUNNABLE EXAMPLE: STARTER
+// BEGIN EVENT DEFINITIONS — EDIT HERE
+var EP_START = {
+  chapter: "arrival",
+  variables: { welcomed: false }
+};
+var EP_CHAPTERS = {
+  arrival: {
+    title: "A New Beginning",
+    description: "Alex is meeting the Miller family.",
+    announce: true,
+    opening: "The front door opens."
+  },
+  routine: {
+    title: "ACT II — A New Routine",
+    description: "Alex has settled into life with the Miller family.",
+    announce: true,
+    opening: "Three months later, life has found a new rhythm.",
+    timeAdvance: { months: 3 }
+  }
+};
+var EP_EVENTS = [
+  {
+    id: "welcome",
+    chapter: "arrival",
+    minChapterTurns: 1,
+    once: true,
+    text: "The Miller family welcomes Alex into their home.",
+    effects: [{ path: "welcomed", op: "set", value: true }],
+    timeAnchor: { id: "alex_arrived", label: "Alex joined the Miller household", context: true },
+    memory: {
+      slot: "family",
+      scope: "story",
+      summary: "The Miller family welcomed Alex into their home.",
+      timeAnchor: "alex_arrived"
+    }
+  },
+  {
+    id: "move_forward",
+    chapter: "arrival",
+    minChapterTurns: 2,
+    when: { path: "welcomed", op: "eq", value: true },
+    display: "replace",
+    text: "The first two days pass in a blur of introductions.",
+    timeAdvance: { days: 2 },
+    nextChapter: "routine"
+  },
+  {
+    id: "routine_scene",
+    chapter: "routine",
+    minChapterTurns: 1,
+    text: "Alex sets another place at the familiar breakfast table."
+  }
+];
+// END EVENT DEFINITIONS
+END RUNNABLE EXAMPLE
