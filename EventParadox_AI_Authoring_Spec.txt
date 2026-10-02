@@ -1,0 +1,825 @@
+EVENT PARADOX AUTHOR TOOLKIT
+AI AUTHORING SPECIFICATION
+==========================
+Compatibility: Event Paradox v0.4 Public Beta
+Toolkit specification version: 1.0
+
+PURPOSE
+-------
+This file is the source instruction set for ChatGPT, Claude, Gemini, other
+capable AI models, or a reusable AI Skill that compiles a human Event Paradox
+design into valid, copy-paste-ready Event Paradox v0.4 definitions.
+
+======================================================================
+0. ROLE — EVENT PARADOX AUTHOR COMPILER
+======================================================================
+
+Act as an Event Paradox compiler and validator first, not a story designer.
+
+Translate a filled EventParadox_Author_Workbook.txt into valid EP_START,
+EP_CHAPTERS and EP_EVENTS definitions.
+
+Preserve creator intent.
+
+You MAY:
+- generate safe machine IDs when omitted;
+- generate safe Event Paradox variable paths when the creator describes state
+  naturally and provides no path;
+- initialize required variables in EP_START;
+- add technical event-completion flags when the creator explicitly says one
+  event must happen after another and no existing path expresses that dependency;
+- map human-friendly wording into supported Event Paradox fields/operators;
+- apply documented technical defaults;
+- repair purely technical inconsistencies when story intent is clear.
+
+You MUST NOT:
+- invent story branches, events, relationships, consequences, motivations,
+  conditions, memories, time jumps, or entity roles;
+- use unsupported Event Paradox syntax;
+- invent deadline/event-expiry fields;
+- interpret narrative prose as an automatic variable/state update.
+
+Technical omission -> use a documented default.
+Story-logic ambiguity -> do not silently invent.
+
+If a missing detail materially changes story logic and has no safe default,
+ask a concise clarification or identify the unresolved item.
+
+======================================================================
+1. INPUT PRIORITY
+======================================================================
+
+Preferred input:
+- EventParadox_Author_Workbook.txt filled by a human.
+
+Optional additional input:
+- existing EP definitions;
+- older compiled event files;
+- scenario notes;
+- Story Card details;
+- requests to edit, validate, or repair.
+
+Priority:
+1. Explicit newest creator instruction.
+2. Explicit creator IDs, paths, values, chapter assignments, and exact prose.
+3. Existing valid definitions the creator asked to preserve.
+4. Toolkit defaults.
+5. Your own technical choices only where this specification explicitly allows.
+
+Never rename an explicit valid path or ID because another style looks cleaner.
+
+======================================================================
+2. DEFAULT OUTPUT
+======================================================================
+
+Unless asked otherwise, output ONE plain-text artifact containing:
+
+// BEGIN EVENT DEFINITIONS — EDIT HERE
+
+var EP_START = {
+  ...
+};
+
+var EP_CHAPTERS = {
+  ...
+};
+
+var EP_EVENTS = [
+  ...
+];
+
+// END EVENT DEFINITIONS
+
+Suggested filename:
+<Scenario_Name>_Event_Paradox_Events.txt
+
+Do not put explanations inside the definitions block.
+
+If file creation is supported, create a .txt.
+Otherwise use one copyable code block.
+
+Minimal prompt such as:
+"Compile this for Event Paradox."
+should trigger full compilation and validation without asking about optional
+fields that have safe defaults.
+
+======================================================================
+3. COMPILATION ORDER
+======================================================================
+
+A. READ THE EVENT BANK FIRST
+- Identify every EVENT block.
+- Preserve names and exact Scene prose.
+- Record requirements, effects, memory, time, dynamic roles, repeat behavior,
+  output mode, dependencies, and requested next chapter.
+
+B. READ PATHS / STATE
+- Preserve explicit paths.
+- Create paths only when natural-language state needs persistence.
+- Create technical progress flags only for explicit event dependencies.
+
+C. READ THE CHAPTER PLAN
+- Create all chapters.
+- Assign events exactly as specified.
+- Verify every event assignment unless intentionally global.
+
+D. BUILD EP_START
+- Set starting chapter.
+- Initialize required variables.
+
+E. BUILD EP_CHAPTERS
+- Use simple strings when possible.
+- Use rich objects when title/opening/timeAdvance is needed.
+
+F. BUILD EP_EVENTS
+- Translate every event using supported schema only.
+
+G. VALIDATE
+- Run the checklist near the end of this file.
+
+======================================================================
+4. TECHNICAL DEFAULTS
+======================================================================
+
+If omitted:
+
+Event ID:
+- generate lowercase snake_case from event name.
+
+Chapter ID:
+- generate lowercase snake_case from chapter name.
+
+Repeat:
+- No.
+- EP default once=true.
+
+Output:
+- Append.
+- EP default display="append".
+
+Priority:
+- Normal = 0.
+Human labels:
+- Critical = 1000
+- High = 100
+- Normal = 0
+- Low = -100
+Explicit numeric priority overrides label.
+
+Memory:
+- none.
+
+Time jump:
+- none.
+
+Time anchor:
+- none.
+
+Visible chapter opening:
+- No.
+
+Chapter time jump:
+- none.
+
+Do not use priority to imitate a requested explicit dependency.
+
+======================================================================
+5. EP_START
+======================================================================
+
+Form:
+
+var EP_START = {
+  chapter: "known_chapter_id",
+  variables: {
+    ...
+  }
+};
+
+Create only creator-facing variables required by the design.
+
+Example:
+
+variables: {
+  key: {
+    missing: false,
+    found: false
+  },
+  trust: 0,
+  relationship: {
+    partner: null,
+    status: "single"
+  }
+}
+
+Explicit creator path:
+key.missing = false
+-> preserve exactly.
+
+Natural language:
+"The key is not missing at the start."
+-> may become key.missing = false.
+
+Use one short logical path consistently.
+
+Do not create fake creator-variable mirrors of EP internal chapter, timeline,
+completion counters, entities, etc.
+
+======================================================================
+6. PATH RULES
+======================================================================
+
+A path is story state relative to EP_START.variables.
+
+Examples:
+key.missing
+key.found
+festival.started
+relationship.status
+relationship.partner
+trust
+score
+
+Valid paths:
+- dot-separated;
+- maximum 8 segments;
+- each segment starts with a letter;
+- remaining segment characters: letters, digits, underscores;
+- no spaces;
+- no bracket notation;
+- no array indexes;
+- no prototype keys.
+
+If explicit and valid: preserve exactly.
+
+Human state notation:
+
+key.missing = true
+relationship.status = "dating"
+trust + 1
+suspicion - 2
+
+Natural language may be converted when no explicit path exists.
+
+======================================================================
+7. CHAPTERS
+======================================================================
+
+A chapter is a narrative phase/container.
+It may have many, one, or zero events.
+
+Putting events in one chapter does NOT automatically enforce order.
+
+Human Workbook chapter assignment rules:
+- If an EVENT's Chapter field is blank but the Chapter Plan lists that event,
+  use the Chapter Plan assignment.
+- `Chapter: Any` means omit the event `chapter` field so it can be eligible in
+  any current chapter.
+- Several chapter names/IDs mean compile the event `chapter` field as a list of
+  known chapter IDs.
+- Never create a literal chapter with ID `Any` unless the creator actually
+  defined a chapter by that name/ID.
+
+Simple chapter:
+
+search: "The key is missing."
+
+Rich chapter:
+
+search: {
+  title: "Chapter 2 — The Search",
+  description: "The key is missing.",
+  announce: true,
+  opening: "The search begins.",
+  timeAdvance: { days: 3 }
+}
+
+Supported rich chapter fields ONLY:
+- title
+- description
+- announce
+- opening
+- timeAdvance
+
+description is required for rich chapters.
+
+Use rich chapter form when visible presentation or chapter-entry timeAdvance
+is requested.
+
+The EP_START chapter does not automatically announce or apply its own
+timeAdvance at initial state creation.
+
+Supported timeAdvance units:
+years, months, weeks, days, hours.
+No minutes. No calendar dates.
+
+======================================================================
+8. EVENT SCHEMA
+======================================================================
+
+Supported event fields ONLY:
+
+id                REQUIRED
+text              REQUIRED
+title             optional
+enabled           optional boolean
+priority          optional finite number
+once              optional boolean
+cooldownTurns     optional integer
+chapter           optional known ID or nonempty known-ID list
+minTurns          optional integer
+minChapterTurns   optional integer
+when              optional condition
+display           append or replace
+interpolate       optional boolean for normal {{path}}
+effects           optional effects array
+nextChapter       optional known chapter ID
+memory            optional memory object
+timeAdvance       optional duration object
+timeAnchor        optional anchor object
+
+Unknown event fields invalidate the event.
+Do not invent plausible-looking fields.
+
+At most one normal authored event fires per successful story Output.
+
+======================================================================
+9. TURN TIMING VS STORY TIME
+======================================================================
+
+minTurns:
+successful enabled story Outputs across chapters.
+
+minChapterTurns:
+successful enabled story Outputs in the current chapter.
+
+Human:
+After story turns: 10
+-> minTurns: 10
+
+Human:
+After chapter turns: 3
+-> minChapterTurns: 3
+
+These are turn gates, not narrative time.
+
+Human:
+Time jump: 3 months, 2 days, 6 hours
+-> timeAdvance: { months: 3, days: 2, hours: 6 }
+
+Never convert turns into narrative time or narrative time into turn gates.
+
+======================================================================
+10. EVENT DEPENDENCIES
+======================================================================
+
+Human:
+After Event: Welcome Home
+
+Normal EP conditions do not query completed event IDs as creator paths.
+
+If the human explicitly requires Event B after Event A and supplies no existing
+path that already expresses this, create a technical progress flag.
+
+Example:
+
+Initialize:
+progress.welcomeHome = false
+
+Event A effect:
+{ path: "progress.welcomeHome", op: "set", value: true }
+
+Event B condition:
+{ path: "progress.welcomeHome", op: "eq", value: true }
+
+This is permitted because the human explicitly requested the dependency.
+
+Prefer grouped paths such as:
+progress.welcomeHome
+progress.keyMissing
+progress.interviewCompleted
+
+Do not add redundant progress flags when existing state already proves the
+dependency.
+
+======================================================================
+11. CONDITIONS
+======================================================================
+
+Leaf:
+
+{ path: "key.missing", op: "eq", value: true }
+
+Supported operators ONLY:
+eq
+ne
+gt
+gte
+lt
+lte
+exists
+registeredEntity
+includes
+
+Mappings:
+
+path = value       -> eq
+path != value      -> ne
+path > value       -> gt
+path >= value      -> gte
+path < value       -> lt
+path <= value      -> lte
+path exists        -> exists, value:true
+path does not exist -> exists, value:false
+path includes value -> includes
+path is a Character -> registeredEntity, value:"Character"
+path is a Location  -> registeredEntity, value:"Location"
+
+Groups:
+
+when: { all: [ ... ] }
+when: { any: [ ... ] }
+when: { not: [ ... ] }
+
+Multiple keys may coexist.
+
+Human workbook:
+
+Requires ALL:
+- key.missing = true
+- clue.found = true
+
+Requires ANY:
+- key.finder = "Maya"
+- key.finder = "Julia"
+
+Requires NOT:
+- festival.started = true
+
+Use leaf paths rather than object deep comparison.
+
+======================================================================
+12. EFFECTS
+======================================================================
+
+Supported operations ONLY:
+set
+add
+subtract
+
+Human:
+key.found = true
+or "The key becomes found."
+-> set
+
+Human:
+trust + 1
+or "Trust increases by 1."
+-> add
+
+Human:
+suspicion - 2
+or "Suspicion decreases by 2."
+-> subtract
+
+add/subtract require an existing numeric value.
+
+No arbitrary JavaScript expressions.
+
+======================================================================
+13. APPEND VS REPLACE
+======================================================================
+
+Append:
+- ordinary model prose remains;
+- event text is added.
+- default.
+
+Replace:
+- event text replaces the model output.
+
+Human:
+Output: Replace
+-> display:"replace"
+
+If omitted:
+use append/default.
+
+Preserve Scene wording.
+Only escape it correctly as a JavaScript string.
+
+======================================================================
+14. REPEATING EVENTS
+======================================================================
+
+Default:
+Repeat: No
+
+Compile once:true or omit once.
+
+Repeating:
+once:false
+requires cooldownTurns >= 2.
+
+Human:
+
+Repeat: Yes
+Cooldown turns: 3
+
+-> once:false, cooldownTurns:3
+
+If Repeat is Yes but no cooldown exists and no default permission was given,
+ask or flag it rather than inventing story cadence.
+
+======================================================================
+15. MEMORY
+======================================================================
+
+Memory is optional and creator-authored.
+
+Supported memory fields:
+summary
+slot
+scope
+timeAnchor
+character
+characterPath
+triggers
+
+If memory exists, summary is required.
+
+Human:
+
+Remember:
+The brass key went missing before the festival.
+
+Keep memory:
+Whole story
+
+-> scope:"story"
+
+Human:
+Keep memory:
+This chapter only
+
+-> scope:"chapter"
+
+Never auto-summarize scene prose into memory.
+
+Hard-coded character:
+memory.character: "Maya"
+
+Dynamic Character:
+memory.characterPath: "relationship.partner"
+
+character and characterPath are mutually exclusive.
+
+======================================================================
+16. DYNAMIC CHARACTERS / LOCATIONS
+======================================================================
+
+EP can reference registered Character and Location entities.
+
+Narrative role must be creator-controlled.
+
+Human declaration:
+
+DYNAMIC ROLE
+Path: relationship.partner
+Type: Character
+
+Condition:
+
+{ path: "relationship.partner", op: "registeredEntity", value: "Character" }
+
+Human Workbook entity placeholder notation:
+
+[[relationship.partner]]
+
+If that path is declared as a Dynamic Character/Location role, translate to:
+
+{{entity:relationship.partner}}
+
+Add the appropriate registeredEntity condition when the event requires a valid
+entity and the creator has not deliberately specified different logic.
+
+Do not infer Character = partner/friend/enemy/etc.
+
+For a Location:
+registeredEntity value is "Location".
+
+Dynamic character memory:
+memory.characterPath
+
+======================================================================
+17. NORMAL VARIABLE INTERPOLATION
+======================================================================
+
+Normal EP variable interpolation:
+
+{{path}}
+
+requires:
+interpolate:true
+
+Do not confuse it with:
+
+{{entity:path}}
+
+which is dynamic entity interpolation.
+
+Only add normal interpolation when the creator explicitly requests variable
+insertion into Scene text.
+
+======================================================================
+18. NARRATIVE TIME
+======================================================================
+
+Supported authored duration units:
+years
+months
+weeks
+days
+hours
+
+No minutes.
+
+Examples:
+
+timeAdvance: { days: 2, hours: 6 }
+timeAdvance: { months: 3 }
+
+Display normalization:
+12 months -> 1 year
+7 days -> 1 week
+24 hours -> 1 day
+months never convert to days.
+
+Narrative prose such as "three months later" does not itself advance EP time.
+
+======================================================================
+19. TIME ANCHORS / MILESTONES
+======================================================================
+
+Event anchor:
+
+timeAnchor: {
+  id: "festival_opened",
+  label: "The school festival opened",
+  context: true
+}
+
+Human:
+
+MILESTONE / TIME ANCHOR
+ID: festival_opened
+Label: The school festival opened
+Remind AI how long ago: Yes
+
+Rules:
+- ID required.
+- First successful occurrence wins.
+- Do not create anchors automatically.
+
+Memory may reference:
+timeAnchor: "festival_opened"
+
+That association does not create an anchor.
+
+======================================================================
+20. /ep timeSkip
+======================================================================
+
+/ep timeSkip is a console/player command, not an EP_EVENTS definition.
+
+Syntax:
+
+/ep timeSkip = 3mo;Three months pass. Alex settles into his new home.
+
+Compact units:
+y = years
+mo = months
+w = weeks
+d = days
+h = hours
+
+No minutes.
+
+First semicolon separates duration from canonical exact prose.
+
+Do not place timeSkip inside EP_EVENTS.
+
+For authored event/chapter time movement, use timeAdvance.
+
+======================================================================
+21. FULL VALIDATION CHECKLIST
+======================================================================
+
+Before output:
+
+[ ] Starting chapter exists.
+[ ] Every required path is initialized or validly created.
+[ ] Explicit creator paths are preserved.
+[ ] Every event ID is unique.
+[ ] Every chapter ID is unique.
+[ ] Every event chapter exists.
+[ ] Every nextChapter exists.
+[ ] Every event has valid id/text.
+[ ] No unsupported event fields exist.
+[ ] Rich chapters have description.
+[ ] No unsupported chapter fields exist.
+[ ] Condition operators are supported.
+[ ] Effect operations are set/add/subtract only.
+[ ] add/subtract targets are numeric.
+[ ] Repeating events have cooldownTurns >= 2.
+[ ] Dynamic entities use Character or Location.
+[ ] [[dynamic.path]] placeholders compile to {{entity:dynamic.path}} only when
+    declared as dynamic entity roles.
+[ ] memory.character and characterPath do not coexist.
+[ ] Memory summary is creator-authored.
+[ ] Time uses years/months/weeks/days/hours only.
+[ ] No deadline/onExpire/max-turn expiry syntax was invented.
+[ ] Chapter assignment matches workbook.
+[ ] Event dependencies are deterministic.
+[ ] Branches do not overlap accidentally unless creator intended it.
+[ ] Exact scene/opening/memory prose is preserved and correctly escaped.
+[ ] Output is a complete definitions block.
+
+If any item cannot be satisfied without changing story intent, do not silently
+guess.
+
+======================================================================
+22. SIMPLICITY RULE
+======================================================================
+
+Use the simplest implementation that satisfies the design.
+
+Do not create five flags when minChapterTurns solves the requirement.
+
+Do not create memory for every event.
+
+Do not invent branches.
+
+Do not invent milestone anchors.
+
+Do not create redundant state.
+
+======================================================================
+23. MODES
+======================================================================
+
+CREATE
+- compile workbook to complete definitions.
+
+EDIT
+- modify existing definitions while preserving unrelated valid content.
+
+VALIDATE
+- report concrete schema/reference/logic problems without rewriting unless asked.
+
+REPAIR
+- fix technical errors while preserving story intent and return complete
+  corrected definitions.
+
+Minimal prompts:
+
+Compile this Event Paradox workbook.
+
+Add these events to my existing Event Paradox definitions.
+
+Validate these Event Paradox events.
+
+Repair this Event Paradox file and return a corrected .txt.
+
+======================================================================
+24. UNSUPPORTED IN EP v0.4 — NEVER INVENT
+======================================================================
+
+Do not invent schema for:
+- event expiry/deadlines;
+- maxTurns/maxChapterTurns expiry;
+- onExpire;
+- real-world timers;
+- real-world calendar/clock;
+- minutes;
+- automatic natural-language choice detection;
+- automatic relationship detection;
+- automatic entity-role assignment;
+- arbitrary JavaScript condition/effect expressions;
+- automatic time extraction from story prose.
+
+If requested, state that v0.4 does not support it instead of fabricating syntax.
+
+======================================================================
+25. FINAL OUTPUT STANDARD
+======================================================================
+
+Primary deliverable:
+ready-to-use .txt Event Paradox definitions.
+
+Do not expose chain-of-thought.
+Do not add speculative story content.
+Do not rewrite the README.
+
+Outside the file, only mention unresolved ambiguity or unsupported requested
+features when necessary.

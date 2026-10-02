@@ -1,0 +1,746 @@
+EVENT PARADOX AUTHOR TOOLKIT
+WORKED EXAMPLES & AI PROMPTS
+============================
+Compatibility: Event Paradox v0.4 Public Beta
+Examples version: 1.0
+
+PURPOSE
+-------
+
+This file shows how Human Workbook ideas should translate into Event Paradox.
+
+It is useful for:
+- human creators learning the workbook format;
+- AI models/Skills as few-shot examples;
+- checking whether generated EP output matches creator intent.
+
+This file does not replace the AI Authoring Specification.
+
+======================================================================
+EXAMPLE 1 — SIMPLE EVENT
+======================================================================
+
+HUMAN WORKBOOK INPUT
+--------------------
+
+EVENT
+Name: The Bell Rings
+Chapter: School
+
+Scene:
+The final bell rings through the hallway.
+
+After chapter turns:
+2
+
+Output:
+Append
+
+COMPILED EP
+-----------
+
+{
+  id: "the_bell_rings",
+  title: "The Bell Rings",
+  chapter: "school",
+  minChapterTurns: 2,
+  text: "The final bell rings through the hallway."
+}
+
+WHY
+---
+- ID was generated from the event name.
+- Append is default, so display may be omitted.
+- Repeat is No by default, so once may be omitted.
+- No memory/effects were invented.
+
+======================================================================
+EXAMPLE 2 — EFFECT + EVENT DEPENDENCY
+======================================================================
+
+HUMAN WORKBOOK INPUT
+--------------------
+
+EVENT
+Name: Welcome Home
+Chapter: Arrival
+
+Scene:
+The Miller family welcomes Alex into their home.
+
+CHANGES
+- welcomed = true
+
+
+EVENT
+Name: First Quiet Evening
+Chapter: Arrival
+
+After Event:
+Welcome Home
+
+Scene:
+That evening, Alex finally gets a quiet moment alone in his new room.
+
+COMPILED IDEA
+-------------
+
+EP_START includes:
+
+variables: {
+  welcomed: false,
+  progress: {
+    welcomeHome: false
+  }
+}
+
+Welcome Home:
+
+{
+  id: "welcome_home",
+  title: "Welcome Home",
+  chapter: "arrival",
+  text: "The Miller family welcomes Alex into their home.",
+  effects: [
+    { path: "welcomed", op: "set", value: true },
+    { path: "progress.welcomeHome", op: "set", value: true }
+  ]
+}
+
+First Quiet Evening:
+
+{
+  id: "first_quiet_evening",
+  title: "First Quiet Evening",
+  chapter: "arrival",
+  when: {
+    path: "progress.welcomeHome",
+    op: "eq",
+    value: true
+  },
+  text: "That evening, Alex finally gets a quiet moment alone in his new room."
+}
+
+WHY
+---
+The human explicitly requested an event dependency.
+EP does not normally expose completed event IDs as creator-variable conditions,
+so the AI compiler added one small technical progress flag.
+
+It did NOT invent new story content.
+
+======================================================================
+EXAMPLE 3 — STATE CONDITIONS AND BRANCHES
+======================================================================
+
+HUMAN WORKBOOK INPUT
+--------------------
+
+EVENT
+Name: Backstage Discovery
+Chapter: Search
+
+Requires ALL:
+- key.missing = true
+- clue.found = true
+- choice.search = "backstage"
+
+Scene:
+You and Maya search behind the curtains. Under a box of paper stars, the brass
+stage key catches the light.
+
+CHANGES
+- key.found = true
+- key.finder = "Maya"
+
+Next chapter:
+Recovery
+
+Output:
+Replace
+
+
+EVENT
+Name: Office Discovery
+Chapter: Search
+
+Requires ALL:
+- key.missing = true
+- clue.found = true
+- choice.search = "office"
+
+Scene:
+You follow Julia into the school office. She opens the lost-and-found drawer
+and lifts out the brass stage key.
+
+CHANGES
+- key.found = true
+- key.finder = "Julia"
+
+Next chapter:
+Recovery
+
+Output:
+Replace
+
+COMPILED EP
+-----------
+
+{
+  id: "backstage_discovery",
+  title: "Backstage Discovery",
+  chapter: "search",
+  when: {
+    all: [
+      { path: "key.missing", op: "eq", value: true },
+      { path: "clue.found", op: "eq", value: true },
+      { path: "choice.search", op: "eq", value: "backstage" }
+    ]
+  },
+  display: "replace",
+  text: "You and Maya search behind the curtains. Under a box of paper stars, the brass stage key catches the light.",
+  effects: [
+    { path: "key.found", op: "set", value: true },
+    { path: "key.finder", op: "set", value: "Maya" }
+  ],
+  nextChapter: "recovery"
+}
+
+{
+  id: "office_discovery",
+  title: "Office Discovery",
+  chapter: "search",
+  when: {
+    all: [
+      { path: "key.missing", op: "eq", value: true },
+      { path: "clue.found", op: "eq", value: true },
+      { path: "choice.search", op: "eq", value: "office" }
+    ]
+  },
+  display: "replace",
+  text: "You follow Julia into the school office. She opens the lost-and-found drawer and lifts out the brass stage key.",
+  effects: [
+    { path: "key.found", op: "set", value: true },
+    { path: "key.finder", op: "set", value: "Julia" }
+  ],
+  nextChapter: "recovery"
+}
+
+WHY
+---
+The creator supplied explicit paths and branch values, so they were preserved.
+
+======================================================================
+EXAMPLE 4 — EVENTS FIRST, THEN CHAPTERS
+======================================================================
+
+HUMAN EVENT BANK
+----------------
+
+1. Last-Minute Checklist
+2. Where Is the Key?
+3. Split Up and Search
+4. A Bent Key Tag
+5. Backstage Discovery
+6. Office Discovery
+7. Back Where It Belongs
+8. One Last Check
+9. Opening Night
+10. The Hall Fills Up
+11. After Closing
+
+The creator writes these FIRST without worrying about chapter structure.
+
+THEN THE CREATOR BUILDS:
+------------------------
+
+CHAPTER
+Name: Preparation
+
+Events:
+1. Last-Minute Checklist
+2. Where Is the Key?
+3. Split Up and Search
+
+
+CHAPTER
+Name: Search
+
+Events:
+1. A Bent Key Tag
+2. Backstage Discovery
+3. Office Discovery
+
+
+CHAPTER
+Name: Recovery
+
+Events:
+1. Back Where It Belongs
+2. One Last Check
+
+
+CHAPTER
+Name: Festival
+
+Events:
+1. Opening Night
+2. The Hall Fills Up
+3. After Closing
+
+WHY THIS WORKFLOW HELPS
+-----------------------
+
+The author thinks about dramatic beats first.
+Chapters are added afterward as organization and narrative phases.
+
+IMPORTANT:
+Listing event A above B does not automatically force A to fire first.
+If order matters, use After Event, paths/conditions, or turn gates.
+
+======================================================================
+EXAMPLE 5 — RICH CHAPTER + TIME
+======================================================================
+
+HUMAN WORKBOOK INPUT
+--------------------
+
+CHAPTER
+Name: A New Routine
+ID: new_routine
+
+Description:
+Alex has settled into life with the Miller family.
+
+Visible opening:
+Yes
+
+Visible title:
+ACT II — A NEW ROUTINE
+
+Opening text:
+Three months later, life has found a new rhythm.
+
+Chapter time jump:
+3 months
+
+COMPILED EP
+-----------
+
+new_routine: {
+  title: "ACT II — A NEW ROUTINE",
+  description: "Alex has settled into life with the Miller family.",
+  announce: true,
+  opening: "Three months later, life has found a new rhythm.",
+  timeAdvance: { months: 3 }
+}
+
+WHY
+---
+The visible prose says three months later AND the timeline advances by three
+months. Prose alone would not advance Event Paradox time.
+
+======================================================================
+EXAMPLE 6 — EVENT TIME + MILESTONE + MEMORY
+======================================================================
+
+HUMAN WORKBOOK INPUT
+--------------------
+
+EVENT
+Name: Adoption Finalized
+Chapter: Adoption
+
+Scene:
+The final signature is written. For the first time, Alex leaves the courthouse
+knowing exactly where home is.
+
+Output:
+Replace
+
+Time jump:
+6 hours
+
+MILESTONE / TIME ANCHOR
+ID: alex_adopted
+Label: Alex was adopted
+Remind AI how long ago: Yes
+
+MEMORY
+Remember:
+Alex was legally adopted and joined the Miller family.
+
+Keep memory:
+Whole story
+
+Memory slot:
+family
+
+COMPILED EP
+-----------
+
+{
+  id: "adoption_finalized",
+  title: "Adoption Finalized",
+  chapter: "adoption",
+  display: "replace",
+  text: "The final signature is written. For the first time, Alex leaves the courthouse knowing exactly where home is.",
+  timeAdvance: { hours: 6 },
+  timeAnchor: {
+    id: "alex_adopted",
+    label: "Alex was adopted",
+    context: true
+  },
+  memory: {
+    slot: "family",
+    scope: "story",
+    summary: "Alex was legally adopted and joined the Miller family.",
+    timeAnchor: "alex_adopted"
+  }
+}
+
+WHY
+---
+The creator requested distinct functions:
+- six hours of timeline movement;
+- a meaningful time anchor;
+- a lasting memory tied to that anchor.
+
+======================================================================
+EXAMPLE 7 — DYNAMIC CHARACTER
+======================================================================
+
+HUMAN WORKBOOK INPUT
+--------------------
+
+DYNAMIC ROLE
+Path: relationship.partner
+Type: Character
+Meaning: The player's selected romantic partner.
+
+EVENT
+Name: Prom Entrance
+Chapter: Prom
+
+Requires ALL:
+- relationship.partner is a Character
+- prom.attending = true
+
+Scene:
+[[relationship.partner]] waits near the entrance beneath the paper lanterns.
+
+MEMORY
+Remember:
+This character attended prom with the player.
+
+Keep memory:
+Whole story
+
+Dynamic character memory path:
+relationship.partner
+
+COMPILED EP
+-----------
+
+{
+  id: "prom_entrance",
+  title: "Prom Entrance",
+  chapter: "prom",
+  when: {
+    all: [
+      { path: "relationship.partner", op: "registeredEntity", value: "Character" },
+      { path: "prom.attending", op: "eq", value: true }
+    ]
+  },
+  text: "{{entity:relationship.partner}} waits near the entrance beneath the paper lanterns.",
+  memory: {
+    slot: "prom_date",
+    scope: "story",
+    characterPath: "relationship.partner",
+    summary: "This character attended prom with the player."
+  }
+}
+
+WHY
+---
+The compiler uses the Character already assigned to relationship.partner.
+It does not choose the partner itself.
+
+======================================================================
+EXAMPLE 8 — ZERO-EVENT FREE-ROAM CHAPTER
+======================================================================
+
+HUMAN WORKBOOK INPUT
+--------------------
+
+CHAPTER
+Name: Free Roam
+ID: free_roam
+
+Description:
+The scripted arc is complete. The story can continue freely.
+
+Visible opening:
+No
+
+Events in this chapter:
+[none]
+
+COMPILED EP
+-----------
+
+free_roam: "The scripted arc is complete. The story can continue freely."
+
+WHY
+---
+A chapter does not need an event.
+No fake finale or exit event is invented.
+
+======================================================================
+EXAMPLE 9 — MANUAL /ep timeSkip
+======================================================================
+
+PLAYER DO ACTION
+----------------
+
+/ep timeSkip = 3mo,2d,6h;Three months pass. Alex knows the neighborhood now; the route to school feels automatic.
+
+RESULT
+------
+
+Event Paradox:
+- advances the authoritative timeline by 3 months, 2 days, 6 hours;
+- keeps the current chapter;
+- does not count as a normal EP story turn;
+- does not fire an event;
+- does not change creator paths;
+- does not create memory or a milestone;
+- returns everything after the first semicolon as canonical story prose.
+
+This command is NOT placed in EP_EVENTS.
+
+======================================================================
+EXAMPLE 10 — COMPLETE WORKBOOK TO COMPLETE DEFINITIONS
+======================================================================
+
+HUMAN DESIGN
+------------
+
+SCENARIO START
+Scenario name: New Home
+Starting chapter: Arrival
+
+Starting state:
+welcomed = false
+
+
+EVENT
+Name: Welcome Home
+
+Scene:
+The Miller family welcomes Alex into their home.
+
+After chapter turns:
+1
+
+Changes:
+- welcomed = true
+
+MEMORY
+Remember:
+The Miller family welcomed Alex into their home.
+
+Keep memory:
+Whole story
+
+
+EVENT
+Name: Move Forward
+
+After Event:
+Welcome Home
+
+Requires ALL:
+- welcomed = true
+
+Scene:
+The first two days pass in a blur of introductions.
+
+Time jump:
+2 days
+
+Next chapter:
+Routine
+
+Output:
+Replace
+
+
+EVENT
+Name: Breakfast Routine
+
+After chapter turns:
+1
+
+Scene:
+Alex sets another place at the now-familiar breakfast table.
+
+
+CHAPTER
+Name: Arrival
+ID: arrival
+
+Description:
+Alex is meeting the Miller family for the first time.
+
+Visible opening:
+No
+
+Events:
+1. Welcome Home
+2. Move Forward
+
+
+CHAPTER
+Name: Routine
+ID: routine
+
+Description:
+Alex has settled into life with the Miller family.
+
+Visible opening:
+Yes
+
+Visible title:
+ACT II — A NEW ROUTINE
+
+Opening text:
+Three months later, life has found a new rhythm.
+
+Chapter time jump:
+3 months
+
+Events:
+1. Breakfast Routine
+
+
+COMPILED DEFINITIONS
+--------------------
+
+// BEGIN EVENT DEFINITIONS — EDIT HERE
+
+var EP_START = {
+  chapter: "arrival",
+  variables: {
+    welcomed: false,
+    progress: {
+      welcomeHome: false
+    }
+  }
+};
+
+var EP_CHAPTERS = {
+  arrival: "Alex is meeting the Miller family for the first time.",
+  routine: {
+    title: "ACT II — A NEW ROUTINE",
+    description: "Alex has settled into life with the Miller family.",
+    announce: true,
+    opening: "Three months later, life has found a new rhythm.",
+    timeAdvance: { months: 3 }
+  }
+};
+
+var EP_EVENTS = [
+  {
+    id: "welcome_home",
+    title: "Welcome Home",
+    chapter: "arrival",
+    minChapterTurns: 1,
+    text: "The Miller family welcomes Alex into their home.",
+    effects: [
+      { path: "welcomed", op: "set", value: true },
+      { path: "progress.welcomeHome", op: "set", value: true }
+    ],
+    memory: {
+      slot: "welcome_home",
+      scope: "story",
+      summary: "The Miller family welcomed Alex into their home."
+    }
+  },
+  {
+    id: "move_forward",
+    title: "Move Forward",
+    chapter: "arrival",
+    when: {
+      all: [
+        { path: "progress.welcomeHome", op: "eq", value: true },
+        { path: "welcomed", op: "eq", value: true }
+      ]
+    },
+    display: "replace",
+    text: "The first two days pass in a blur of introductions.",
+    timeAdvance: { days: 2 },
+    nextChapter: "routine"
+  },
+  {
+    id: "breakfast_routine",
+    title: "Breakfast Routine",
+    chapter: "routine",
+    minChapterTurns: 1,
+    text: "Alex sets another place at the now-familiar breakfast table."
+  }
+];
+
+// END EVENT DEFINITIONS
+
+======================================================================
+MINIMAL PROMPTS
+======================================================================
+
+WITH THE AI SPECIFICATION UPLOADED
+----------------------------------
+
+Compile this Event Paradox workbook. Return a ready-to-use .txt definitions file.
+
+WITH AN EVENT PARADOX SKILL INSTALLED
+-------------------------------------
+
+Compile this for Event Paradox.
+
+ADD EVENTS TO EXISTING DEFINITIONS
+----------------------------------
+
+Add the new events in my workbook to the existing Event Paradox definitions.
+Preserve unrelated IDs, paths, chapters, and logic. Return the complete updated
+.txt definitions file.
+
+VALIDATE
+--------
+
+Validate these definitions against Event Paradox v0.4. Do not rewrite them.
+List only concrete schema/reference/logic problems.
+
+REPAIR
+------
+
+Repair these Event Paradox v0.4 definitions. Preserve story intent and explicit
+IDs/paths. Return the complete corrected .txt definitions file.
+
+======================================================================
+WHAT A GOOD AI RESULT SHOULD NOT DO
+======================================================================
+
+It should NOT:
+
+- invent deadline, onExpire, or unsupported v0.4 fields;
+- convert "3 months later" prose into timeline movement unless a time jump was
+  actually requested;
+- invent relationship.partner because two characters flirt;
+- create memory for every event automatically;
+- create milestones for every event automatically;
+- rewrite explicit creator paths;
+- treat chapter listing order as automatic sequencing;
+- assume AI Dungeon prose updates EP paths;
+- generate arbitrary JavaScript expressions.
+
+If generated output does one of these, validate or repair it before using it.

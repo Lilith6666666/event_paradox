@@ -1,0 +1,938 @@
+EVENT PARADOX AUTHOR TOOLKIT
+HUMAN AUTHOR WORKBOOK
+=====================
+Compatibility: Event Paradox v0.4 Public Beta
+Workbook format version: 1.0
+
+PURPOSE
+-------
+
+This file lets you design Event Paradox stories without writing JavaScript.
+
+You write:
+- what events happen;
+- when they can happen;
+- what changes after them;
+- what Event Paradox should remember;
+- which chapter each event belongs to.
+
+Then upload this filled workbook together with:
+
+EventParadox_AI_Authoring_Spec.txt
+
+to a capable AI and write:
+
+Compile this Event Paradox workbook.
+
+The AI should return a ready-to-use .txt definitions file.
+
+You do NOT need to fill every field.
+Delete unused examples and leave optional fields blank.
+
+======================================================================
+THE WORKFLOW — EVENTS FIRST, CHAPTERS SECOND
+======================================================================
+
+Use this order:
+
+STEP 1 — Write every event you want.
+STEP 2 — Decide what story state/paths those events need.
+STEP 3 — Arrange the events into chapters.
+STEP 4 — Describe each chapter.
+STEP 5 — Choose the starting chapter/state.
+STEP 6 — Send this workbook to an AI with the AI Authoring Specification.
+
+Why?
+
+Events are the actual authored scenes and consequences.
+Chapters are containers that organize events into narrative phases.
+
+A chapter may contain:
+- many events;
+- one event;
+- zero events.
+
+Putting events in the same chapter does NOT automatically guarantee which one
+fires first. Use After Event, conditions, turn timing, or priority when order
+matters.
+
+======================================================================
+1. WHAT IS AN EVENT?
+======================================================================
+
+An EVENT is a creator-written scene that Event Paradox can fire when its
+requirements are met.
+
+The simplest event:
+
+EVENT
+Name: The Bell Rings
+
+Scene:
+The final bell rings through the hallway.
+
+Everything else is optional unless your story needs it.
+
+Useful event ideas:
+- a character arrives;
+- a secret is revealed;
+- a key goes missing;
+- a route choice produces a consequence;
+- someone confesses something;
+- a festival begins;
+- a relationship reaches a milestone;
+- a chapter ends;
+- a major time jump occurs.
+
+======================================================================
+2. EVENT PATHS — THE MAIN TECHNICAL IDEA
+======================================================================
+
+A PATH is a short name for a piece of story state Event Paradox tracks.
+
+Examples:
+
+key.missing
+key.found
+festival.started
+relationship.status
+relationship.partner
+trust
+score
+
+Think of a path as a labeled box.
+
+key.found = false
+
+means:
+
+"The box key.found currently contains false."
+
+An event can later change it:
+
+key.found = true
+
+Paths make event logic deterministic.
+
+IMPORTANT:
+AI Dungeon prose does NOT automatically change paths.
+
+If the player writes:
+
+I search backstage.
+
+Event Paradox does not automatically know:
+
+choice.search = "backstage"
+
+unless your event/scenario logic explicitly changes that path or the
+creator/player uses a suitable /ep command.
+
+TWO WAYS TO WRITE STATE
+
+A. EASY MODE — natural language
+
+Changes:
+- The key becomes missing.
+
+The AI compiler may create a path such as:
+
+key.missing
+
+B. CONTROL MODE — explicit path
+
+Changes:
+- key.missing = true
+
+If you provide a path, the AI compiler should preserve it.
+
+PATH NAMING TIPS
+
+Good:
+key.missing
+relationship.partner
+festival.started
+trust
+school.expelled
+
+Avoid:
+The key is missing
+key-missing
+key[0]
+relationship partner
+
+You do not need a path for every story detail.
+Use paths only for facts that affect later event logic.
+
+======================================================================
+3. WRITE THE EVENT BANK FIRST
+======================================================================
+
+Copy the EVENT TEMPLATE once for every event you want.
+
+Do not worry about chapters yet.
+You may leave Chapter blank at first.
+
+Write events in the rough order you imagine them happening.
+Branches can sit next to each other.
+
+----------------------------------------------------------------------
+EVENT TEMPLATE
+----------------------------------------------------------------------
+
+EVENT
+Name:
+ID: [optional — leave blank and AI creates one]
+Chapter: [leave blank until chapter planning]
+
+Scene:
+[Write the exact authored scene Event Paradox should show.]
+
+WHEN / REQUIREMENTS
+After story turns: [optional number]
+After chapter turns: [optional number]
+After Event: [optional event name]
+
+Requires ALL:
+- [optional condition]
+- [optional condition]
+
+Requires ANY:
+- [optional condition]
+- [optional condition]
+
+Requires NOT:
+- [optional condition]
+
+CHANGES
+- [optional state change]
+- [optional state change]
+
+NEXT CHAPTER
+[optional chapter name]
+
+OUTPUT
+[Append / Replace — default Append]
+
+REPEAT
+[No / Yes — default No]
+
+Cooldown turns:
+[required if repeating]
+
+PRIORITY
+[Critical / High / Normal / Low / number — default Normal]
+
+TIME JUMP
+[optional — e.g. 3 months / 2 days, 6 hours]
+
+MILESTONE / TIME ANCHOR
+ID:
+Label:
+Remind AI how long ago: [Yes / No]
+
+MEMORY
+Remember:
+[optional exact memory text]
+
+Keep memory:
+[This chapter only / Whole story]
+
+Memory slot:
+[optional]
+
+Character memory:
+[optional hard-coded character name]
+
+Dynamic character memory path:
+[optional registered Character path]
+
+NOTES FOR AI COMPILER
+[optional technical notes that should not appear in story prose]
+
+----------------------------------------------------------------------
+
+======================================================================
+4. HOW TO WRITE "WHEN"
+======================================================================
+
+TURN TIMING
+
+After story turns: 10
+
+= do not allow before Event Paradox has counted 10 successful story Outputs
+across the adventure.
+
+After chapter turns: 3
+
+= do not allow before 3 successful story Outputs in the current chapter.
+
+These are turns, NOT story time.
+
+"3 chapter turns" is different from "3 days later."
+
+EVENT DEPENDENCY
+
+After Event: Welcome Home
+
+means:
+This event should not happen until Welcome Home has happened.
+
+The AI compiler may create a small technical progress path to enforce this.
+
+STATE CONDITIONS
+
+Examples:
+
+Requires ALL:
+- key.missing = true
+- clue.found = true
+
+Requires ANY:
+- key.finder = "Maya"
+- key.finder = "Julia"
+
+Requires NOT:
+- festival.started = true
+
+COMPARISONS
+
+trust = 5
+trust != 0
+trust > 3
+trust >= 3
+trust < 10
+trust <= 10
+
+ARRAY MEMBERSHIP
+
+inventory includes "key"
+
+EXISTS
+
+secret.name exists
+secret.name does not exist
+
+DYNAMIC CHARACTER / LOCATION
+
+relationship.partner is a Character
+venue is a Location
+
+This means the path must resolve to a registered Event Paradox entity.
+
+======================================================================
+5. HOW TO WRITE "CHANGES"
+======================================================================
+
+SET A VALUE
+
+key.missing = true
+relationship.status = "dating"
+door.state = "open"
+
+or natural language:
+
+- The key becomes missing.
+- Relationship status becomes dating.
+- The door becomes open.
+
+INCREASE A NUMBER
+
+trust + 1
+
+or:
+
+- Trust increases by 1.
+
+DECREASE A NUMBER
+
+suspicion - 2
+
+or:
+
+- Suspicion decreases by 2.
+
+If you use + or -, make sure that value starts as a number in Starting State.
+
+======================================================================
+6. APPEND VS REPLACE
+======================================================================
+
+Output: Append
+
+Event Paradox keeps the AI's normal response and adds your event scene after it.
+
+Use for:
+- a small interruption;
+- a discovery;
+- an extra beat that can follow normal prose.
+
+Output: Replace
+
+Event Paradox replaces the AI response with your exact scene.
+
+Use for:
+- important controlled scenes;
+- chapter finales;
+- scenes where authored wording must fully control what appears.
+
+Default:
+Append.
+
+======================================================================
+7. PRIORITY
+======================================================================
+
+Priority matters when several events are eligible at the same time.
+
+Toolkit labels:
+
+Critical
+High
+Normal
+Low
+
+Default:
+Normal.
+
+Use priority sparingly.
+
+Priority does NOT replace proper conditions.
+
+If Event A must happen before Event B, use:
+
+After Event: Event A
+
+or another explicit condition, instead of relying only on higher priority.
+
+======================================================================
+8. REPEATING EVENTS
+======================================================================
+
+Default:
+
+Repeat: No
+
+For a repeating event:
+
+Repeat: Yes
+Cooldown turns: 3
+
+Cooldown is counted in Event Paradox story turns.
+
+Do not use repeat mode for an event that should happen only once.
+
+======================================================================
+9. MEMORIES
+======================================================================
+
+Use memory for creator-written facts the AI should be reminded about.
+
+Example:
+
+Remember:
+The player and Maya found the missing brass stage key backstage.
+
+Keep memory:
+Whole story
+
+For temporary information:
+
+Keep memory:
+This chapter only
+
+Do NOT put every event into memory.
+
+Good memory candidates:
+- lasting relationship change;
+- important mystery discovery;
+- major decision;
+- major status later scenes depend on.
+
+Usually unnecessary:
+- decorative dialogue;
+- tiny action details;
+- facts that stop mattering immediately.
+
+Memory text should be a factual reminder, not a long scene.
+
+======================================================================
+10. DYNAMIC CHARACTERS AND LOCATIONS
+======================================================================
+
+Event Paradox can use Character and Location entities registered from Story
+Cards or integrated Auto-Cards.
+
+The creator still decides what role they mean.
+
+Example path:
+
+relationship.partner
+
+can mean:
+"the Character selected as the player's partner"
+
+but Event Paradox does NOT choose that person automatically.
+
+DECLARE A DYNAMIC ROLE
+
+DYNAMIC ROLE
+Path: relationship.partner
+Type: Character
+Meaning: The player's current romantic partner.
+
+DYNAMIC ROLE
+Path: venue
+Type: Location
+Meaning: The selected event venue.
+
+USING THE ENTITY IN A SCENE
+
+Toolkit notation:
+
+[[relationship.partner]]
+
+Example:
+
+[[relationship.partner]] waits for you outside the school.
+
+The AI compiler translates that into Event Paradox entity interpolation.
+
+REQUIRING THE ENTITY
+
+Requires ALL:
+- relationship.partner is a Character
+
+or:
+
+- venue is a Location
+
+DYNAMIC CHARACTER MEMORY
+
+Dynamic character memory path:
+relationship.partner
+
+Use this when event memory should attach to whichever registered Character the
+path currently points to.
+
+======================================================================
+11. STORY TIME
+======================================================================
+
+Event Paradox v0.4 tracks authored narrative time.
+
+Supported units:
+
+years
+months
+weeks
+days
+hours
+
+No minutes.
+
+EVENT TIME JUMP
+
+TIME JUMP
+3 months, 2 days, 6 hours
+
+The AI compiler converts this into EP timeAdvance.
+
+CHAPTER TIME JUMP
+
+A chapter can also advance time when the story enters it.
+
+IMPORTANT
+
+Writing:
+
+Three months later...
+
+inside Scene text does NOT by itself advance Event Paradox time.
+
+If the timeline should move, also fill in TIME JUMP.
+
+======================================================================
+12. MILESTONES / TIME ANCHORS
+======================================================================
+
+A milestone records WHEN an important event occurred.
+
+Example:
+
+MILESTONE / TIME ANCHOR
+ID: alex_adopted
+Label: Alex was adopted
+Remind AI how long ago: Yes
+
+Later Event Paradox can remind the model:
+
+Alex was adopted — 3 months ago.
+
+Use milestones for genuinely important moments.
+
+Good:
+- adoption;
+- relationship begins;
+- festival opens;
+- character moves away;
+- graduation.
+
+Avoid turning every event into a milestone.
+
+======================================================================
+13. PLAYER MANUAL TIME SKIPS
+======================================================================
+
+This is not placed inside an EVENT block.
+
+Players/creators can use a Do action:
+
+/ep timeSkip = 3mo;Three months pass. Alex settles into his new home.
+
+Units:
+
+y  = years
+mo = months
+w  = weeks
+d  = days
+h  = hours
+
+Example:
+
+/ep timeSkip = 2d,6h;Two days pass; by evening, everyone is exhausted.
+
+The first semicolon separates time from exact story prose.
+
+Event Paradox advances the timeline and inserts the supplied prose exactly.
+
+timeSkip does NOT:
+- move chapter;
+- fire an event;
+- change paths;
+- create memory;
+- create a milestone automatically.
+
+For a long time-skip scene that does not fit in one normal AI Dungeon action:
+
+/ep advanceTime = {"months":3}
+
+Then write the transition normally in Story mode.
+
+======================================================================
+14. NOW BUILD YOUR CHAPTERS
+======================================================================
+
+Only after you have written the EVENT BANK, make the chapter plan.
+
+Ask:
+
+"What phase of the story does each event belong to?"
+
+Do not create a new chapter just because a new event happens.
+Create a new chapter when the narrative phase changes.
+
+Examples:
+
+Preparation
+Search
+Recovery
+Opening Night
+Festival
+Aftermath
+Free Roam
+
+A chapter can hold several events.
+
+----------------------------------------------------------------------
+CHAPTER TEMPLATE
+----------------------------------------------------------------------
+
+CHAPTER
+Name:
+ID: [optional]
+
+Description:
+[Short statement of what is true during this phase.]
+
+Visible opening:
+[Yes / No]
+
+Visible title:
+[optional exact heading]
+
+Opening text:
+[optional exact text shown when entering the chapter]
+
+Chapter time jump:
+[optional — e.g. 3 months / 1 day, 6 hours]
+
+Events in this chapter:
+1.
+2.
+3.
+4.
+
+Notes:
+[optional]
+
+----------------------------------------------------------------------
+
+CHAPTER ORDER
+
+List chapters in rough story order.
+
+Events may still branch between chapters.
+
+ZERO-EVENT CHAPTER
+
+A chapter may contain no authored events.
+
+Example:
+
+CHAPTER
+Name: Free Roam
+
+Description:
+The scripted arc is finished. Play can continue freely.
+
+Events in this chapter:
+[none]
+
+======================================================================
+15. ASSIGN EVERY EVENT
+======================================================================
+
+After creating chapters, return to the Event Bank.
+
+Every event should now be:
+
+- assigned to one chapter;
+- deliberately allowed in several chapters;
+- deliberately global/no chapter restriction.
+
+If an event belongs to several chapters:
+
+Chapter:
+Preparation, Search, Recovery
+
+If intentionally global:
+
+Chapter:
+Any
+
+Do not leave Chapter blank accidentally.
+
+======================================================================
+16. STARTING CHAPTER AND STARTING STATE
+======================================================================
+
+Fill this after events and chapters are designed.
+
+SCENARIO START
+--------------
+
+Scenario name:
+
+Starting chapter:
+
+STARTING STATE
+
+Write one line per value that matters.
+
+Examples:
+
+key.missing = false
+key.found = false
+choice.search = "undecided"
+trust = 0
+relationship.partner = null
+relationship.status = "single"
+
+You may also write natural language:
+
+- The key is not missing.
+- The key has not been found.
+- No search route has been selected.
+- Trust starts at zero.
+
+If a later event uses a numeric + or -, initialize that value as a number.
+
+DYNAMIC ROLES AT START
+
+Example:
+
+relationship.partner = null
+
+null means no registered Character has been assigned yet.
+
+======================================================================
+17. FINAL HUMAN CHECKLIST
+======================================================================
+
+Before sending the workbook to an AI:
+
+[ ] I wrote all important events first.
+[ ] I created chapters after the Event Bank.
+[ ] Every event is assigned to the intended chapter(s).
+[ ] Important order is expressed with After Event / conditions / timing.
+[ ] I only created paths for state that later logic needs.
+[ ] Numeric paths used with + or - have starting numeric values.
+[ ] My Scene text is the exact text I want EP to use.
+[ ] I marked Replace only where I need full scene control.
+[ ] I added memory only where useful.
+[ ] I added time jumps wherever story time should actually advance.
+[ ] I used milestones only for meaningful moments.
+[ ] Dynamic Character/Location roles have explicit paths.
+[ ] I chose the starting chapter.
+[ ] I described starting state.
+
+======================================================================
+18. MINIMAL AI PROMPT
+======================================================================
+
+Upload:
+
+1. EventParadox_AI_Authoring_Spec.txt
+2. This filled EventParadox_Author_Workbook.txt
+
+Then write:
+
+Compile this Event Paradox workbook. Output a ready-to-use .txt definitions file.
+
+If an Event Paradox Skill already contains the specification, upload only this
+filled workbook and write:
+
+Compile this for Event Paradox.
+
+======================================================================
+19. BLANK WORK AREA
+======================================================================
+
+SCENARIO START
+--------------
+
+Scenario name:
+
+Starting chapter:
+
+STARTING STATE
+-
+
+
+DYNAMIC ROLES
+-------------
+
+DYNAMIC ROLE
+Path:
+Type: [Character / Location]
+Meaning:
+
+
+======================================================================
+EVENT BANK
+======================================================================
+
+EVENT
+Name:
+ID:
+Chapter:
+
+Scene:
+
+
+WHEN / REQUIREMENTS
+After story turns:
+After chapter turns:
+After Event:
+
+Requires ALL:
+-
+
+Requires ANY:
+-
+
+Requires NOT:
+-
+
+CHANGES
+-
+
+NEXT CHAPTER
+
+
+OUTPUT
+
+
+REPEAT
+
+Cooldown turns:
+
+PRIORITY
+
+
+TIME JUMP
+
+
+MILESTONE / TIME ANCHOR
+ID:
+Label:
+Remind AI how long ago:
+
+
+MEMORY
+Remember:
+
+Keep memory:
+
+Memory slot:
+
+Character memory:
+
+Dynamic character memory path:
+
+
+NOTES FOR AI COMPILER
+
+
+
+----------------------------------------------------------------------
+COPY THE EVENT BLOCK ABOVE FOR EVERY EVENT YOU WANT.
+WRITE ALL EVENTS BEFORE BUILDING CHAPTERS.
+----------------------------------------------------------------------
+
+
+======================================================================
+CHAPTER PLAN
+======================================================================
+
+CHAPTER
+Name:
+ID:
+
+Description:
+
+
+Visible opening:
+
+Visible title:
+
+Opening text:
+
+
+Chapter time jump:
+
+
+Events in this chapter:
+1.
+2.
+3.
+
+Notes:
+
+
+
+----------------------------------------------------------------------
+COPY THE CHAPTER BLOCK ABOVE FOR EVERY CHAPTER.
+THEN RETURN TO THE EVENT BANK AND FILL EACH EVENT'S Chapter FIELD.
+----------------------------------------------------------------------
